@@ -20,9 +20,9 @@ func TestZigZagLong(t *testing.T) {
 }
 
 func TestEncodeHeader(t *testing.T) {
-	e := NewEncoder()
+	e := NewEncodeConf()
 	e.Version = 3
-	content, err := e.Marshal(1)
+	content, err := Marshal(e, 1)
 	if err != nil || len(content) < 4 {
 		t.Fatal("err here", err, "content size:", len(content))
 	}
@@ -35,11 +35,11 @@ func TestEncodeHeader(t *testing.T) {
 	expect(byte(0x00), varByte&0x02, t, "testencodeheader-sharedstringvalue")
 	expect(byte(0x01), varByte&0x01, t, "testencodeheader-sharedpropname")
 
-	e = NewEncoder()
+	e = NewEncodeConf()
 	e.SharedStringValueEnabled = true
 	e.SharedPropertyNameEnabled = false
 
-	content, err = e.Marshal(1)
+	content, err = Marshal(e, 1)
 	if err != nil || len(content) < 4 {
 		t.Fatal("err here", err, "content size:", len(content))
 	}
@@ -47,6 +47,24 @@ func TestEncodeHeader(t *testing.T) {
 	expect(byte(1)<<1, varByte&0x02, t, "testencodeheader-sharedstringvalue2")
 	expect(byte(0x00), varByte&0x01, t, "testencodeheader-sharedpropname2")
 
+}
+func TestEncodeSmallInt(t *testing.T) {
+	e := NewEncodeConf()
+	e.IncludeHeader = false
+
+	assertSmallInt := func(n int, name string) {
+		c, err := Marshal(e, n)
+		if err != nil {
+			t.Fatal("error", err)
+		}
+		expect(1, len(c), t, name+"length")
+		expect(byte(token_prefix_small_int+zigzagEncodeInt(n)), c[0], t, name)
+	}
+	assertSmallInt(3, "encode3")
+	assertSmallInt(0, "encode0")
+	assertSmallInt(-6, "encode-6")
+	assertSmallInt(15, "encode15")
+	assertSmallInt(-16, "encode-16")
 }
 
 func expect(expected interface{}, got interface{}, t *testing.T, test string) {

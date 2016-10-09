@@ -1,7 +1,9 @@
 package gosmile
 
 import (
+	"log"
 	"math"
+	"runtime"
 	"testing"
 )
 
@@ -67,8 +69,47 @@ func TestEncodeSmallInt(t *testing.T) {
 	assertSmallInt(-16, "encode-16")
 }
 
+func TestOtherInts(t *testing.T) {
+	e := NewEncodeConf()
+	e.IncludeHeader = false
+
+	assertInt := func(n int, length int, name string) {
+		c, err := Marshal(e, n)
+		if err != nil {
+			t.Fatal(err)
+		}
+		expect(length, len(c), t, name+"length")
+	}
+	assertInt(16, 2, "encode16")
+	assertInt(-17, 2, "encode-17")
+	assertInt(0xfff, 3, "encode0xfff")
+	assertInt(-4096, 3, "encode-4096")
+	assertInt(0x1000, 4, "encode0x1000")
+	assertInt(500000, 4, "encode500000")
+	assertInt(math.MaxInt32, 6, "encodemaxint")
+	assertInt(math.MinInt32, 6, "encodeminint")
+
+}
+
+func TestFloat(t *testing.T) {
+	e := NewEncodeConf()
+	e.IncludeHeader = false
+
+	c, err := Marshal(e, float32(0.125))
+	if err != nil || c == nil {
+		t.Fatal("encode float failed, content:", c, "error:", err)
+	}
+	if len(c) != 6 {
+		t.Fatal("encode float failed, expected length is 6 but it was:", len(c))
+	}
+
+}
+
 func expect(expected interface{}, got interface{}, t *testing.T, test string) {
 	if got != expected {
+		var stack [4096]byte
+		runtime.Stack(stack[:], false)
+		log.Printf("%s\n", stack[:])
 		t.Fatal(test, "expected:", expected, "got:", got)
 	}
 }

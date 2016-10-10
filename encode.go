@@ -6,7 +6,7 @@ import (
 	"reflect"
 )
 
-// Configuration struct for encoding
+// EncodeConf: Configuration struct for encoding
 // For default values, please use NewEncodeConf() function
 type EncodeConf struct {
 	ContainsRawBinary         bool
@@ -55,6 +55,8 @@ func marshal(e *EncodeConf, v interface{}) error {
 		return encodeInt(e, rv)
 	case reflect.Float32:
 		return encodeFloat32(e, rv)
+	case reflect.Float64:
+		return encodeFloat64(e, rv)
 	}
 	return nil
 }
@@ -130,6 +132,46 @@ func encodeFloat32(e *EncodeConf, rv reflect.Value) error {
 	i = i >> 7
 	byte0 := byte(i & 0x7F)
 	e.content.Write([]byte{byte0, byte1, byte2, byte3, byte4})
+	return nil
+}
+
+func encodeFloat64(e *EncodeConf, rv reflect.Value) error {
+	n := rv.Float()
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.LittleEndian, n)
+	if err != nil {
+		return err
+	}
+	i := binary.BigEndian.Uint64(buf.Bytes())
+	e.content.WriteByte(token_byte_float_64)
+	// first 5 bytes
+	hi5 := i >> 35
+	byte4 := byte(hi5 & 0x7F)
+	hi5 = hi5 >> 7
+	byte3 := byte(hi5 & 0x7F)
+	hi5 = hi5 >> 7
+	byte2 := byte(hi5 & 0x7F)
+	hi5 = hi5 >> 7
+	byte1 := byte(hi5 & 0x7F)
+	hi5 = hi5 >> 7
+	byte0 := byte(hi5 & 0x7F)
+	e.content.Write([]byte{byte0, byte1, byte2, byte3, byte4})
+
+	//split byte
+	e.content.WriteByte(byte((i >> 28) & 0x7F))
+
+	//last 4 bytes
+
+	lo4 := i
+	byte3 = byte(lo4 & 0x7F)
+	lo4 = lo4 >> 7
+	byte2 = byte(lo4 & 0x7F)
+	lo4 = lo4 >> 7
+	byte1 = byte(lo4 & 0x7F)
+	lo4 = lo4 >> 7
+	byte0 = byte(lo4 & 0x7F)
+
+	e.content.Write([]byte{byte0, byte1, byte2, byte3})
 	return nil
 }
 

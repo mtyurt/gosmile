@@ -91,7 +91,7 @@ func TestOtherInts(t *testing.T) {
 
 }
 
-func TestFloat(t *testing.T) {
+func TestFloat32(t *testing.T) {
 	e := NewEncodeConf()
 	e.IncludeHeader = false
 
@@ -103,6 +103,19 @@ func TestFloat(t *testing.T) {
 		t.Fatal("encode float failed, expected length is 6 but it was:", len(c))
 	}
 
+}
+
+func TestFloat64(t *testing.T) {
+	e := NewEncodeConf()
+	e.IncludeHeader = false
+
+	c, err := Marshal(e, float64(0.125))
+	if err != nil || c == nil {
+		t.Fatal("encode float failed, content:", c, "error:", err)
+	}
+	if len(c) != 11 {
+		t.Fatal("encode float failed, expected length is 11 but it was:", len(c))
+	}
 }
 
 func expect(expected interface{}, got interface{}, t *testing.T, test string) {

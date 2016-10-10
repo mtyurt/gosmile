@@ -57,7 +57,10 @@ func marshal(e *EncodeConf, v interface{}) error {
 		return encodeFloat32(e, rv)
 	case reflect.Float64:
 		return encodeFloat64(e, rv)
+	case reflect.Bool:
+		return encodeBool(e, rv)
 	}
+
 	return nil
 }
 
@@ -172,6 +175,15 @@ func encodeFloat64(e *EncodeConf, rv reflect.Value) error {
 	byte0 = byte(lo4 & 0x7F)
 
 	e.content.Write([]byte{byte0, byte1, byte2, byte3})
+	return nil
+}
+
+func encodeBool(e *EncodeConf, rv reflect.Value) error {
+	if rv.Bool() {
+		e.content.WriteByte(token_literal_true)
+	} else {
+		e.content.WriteByte(token_literal_false)
+	}
 	return nil
 }
 

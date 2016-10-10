@@ -11,3 +11,6 @@ const token_misc_float_64 = 0x01
 const token_byte_int_32 = token_prefix_integer + token_misc_integer
 const token_byte_float_32 = token_prefix_fp | token_misc_float_32
 const token_byte_float_64 = token_prefix_fp | token_misc_float_64
+
+const token_literal_false = 0x22
+const token_literal_true = 0x23

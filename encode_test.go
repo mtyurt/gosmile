@@ -111,10 +111,25 @@ func TestFloat64(t *testing.T) {
 
 	c, err := Marshal(e, float64(0.125))
 	if err != nil || c == nil {
-		t.Fatal("encode float failed, content:", c, "error:", err)
+		t.Fatal("encode float64 failed, content:", c, "error:", err)
 	}
 	if len(c) != 11 {
-		t.Fatal("encode float failed, expected length is 11 but it was:", len(c))
+		t.Fatal("encode float64 failed, expected length is 11 but it was:", len(c))
+	}
+}
+
+func TestBool(t *testing.T) {
+	e := NewEncodeConf()
+	e.IncludeHeader = false
+
+	c, err := Marshal(e, false)
+	if err != nil || c == nil || len(c) != 1 || c[0] != token_literal_false {
+		t.Fatal("encode false failed, content:", c, "error:", err)
+	}
+
+	c, err = Marshal(e, true)
+	if err != nil || c == nil || len(c) != 1 || c[0] != token_literal_true {
+		t.Fatal("encode true failed, content:", c, "error:", err)
 	}
 }
 

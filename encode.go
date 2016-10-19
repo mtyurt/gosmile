@@ -59,6 +59,8 @@ func marshal(e *EncodeConf, v interface{}) error {
 		return encodeFloat64(e, rv)
 	case reflect.Bool:
 		return encodeBool(e, rv)
+	case reflect.String:
+		return encodeString(e, rv)
 	}
 
 	return nil
@@ -78,6 +80,39 @@ func (e *EncodeConf) encodeHeader() {
 		varByte = varByte | 0x01
 	}
 	e.content.WriteByte(byte(varByte))
+}
+
+func encodeString(e *EncodeConf, rv reflect.Value) error {
+	val := rv.String()
+	vlen := len(val)
+	if vlen == 0 {
+		e.content.WriteByte(token_literal_empty_string)
+		return nil
+	}
+	//TODO max shared string length
+	//TODO shared string
+
+	encoded := []byte(val)
+	byteLen := len(encoded)
+	if byteLen <= max_short_value_string_bytes {
+		//TODO add seen string if necessary
+
+		if byteLen == vlen {
+			e.content.WriteByte(byte(token_prefix_tiny_ascii - 1 + byteLen))
+		} else {
+			e.content.WriteByte(byte(token_prefix_tiny_unicode - 2 + byteLen))
+		}
+		e.content.Write(encoded)
+	} else {
+		token := token_misc_long_text_unicode
+		if byteLen == vlen {
+			token = token_byte_long_string_ascii
+		}
+		e.content.WriteByte(byte(token))
+		e.content.Write(encoded)
+		e.content.WriteByte(byte(byte_marker_end_of_string))
+	}
+	return nil
 }
 
 func encodeInt(e *EncodeConf, rv reflect.Value) error {

@@ -102,7 +102,6 @@ func TestFloat32(t *testing.T) {
 	if len(c) != 6 {
 		t.Fatal("encode float failed, expected length is 6 but it was:", len(c))
 	}
-
 }
 
 func TestFloat64(t *testing.T) {
@@ -130,6 +129,51 @@ func TestBool(t *testing.T) {
 	c, err = Marshal(e, true)
 	if err != nil || c == nil || len(c) != 1 || c[0] != token_literal_true {
 		t.Fatal("encode true failed, content:", c, "error:", err)
+	}
+}
+
+func TestTinyString(t *testing.T) {
+	e := NewEncodeConf()
+	e.IncludeHeader = false
+
+	originalVal := "strtest"
+	val := originalVal
+	c, err := Marshal(e, val)
+	if err != nil || c == nil || len(c) != 8 || (c[0] != (token_prefix_tiny_ascii+7)) && string(c[1:]) != val {
+		t.Fatal("encode short ascii string failed, err:", err, "content:", c)
+	}
+	val = originalVal + "œ"
+	c, err = Marshal(e, val)
+	if err != nil || c == nil || len(c) != 10 || (c[0] != (token_prefix_tiny_unicode+10)) && string(c[1:]) != val {
+		t.Fatal("encode short unicode 2-byte string failed, err:", err, "content:", c)
+	}
+	val = originalVal + "≈"
+	c, err = Marshal(e, val)
+	if err != nil || c == nil || len(c) != 11 || (c[0] != (token_prefix_tiny_unicode+11)) && string(c[1:]) != val {
+		t.Fatal("encode short unicode 3-byte string failed, err:", err, "content:", c)
+	}
+}
+
+func TestLongString(t *testing.T) {
+	e := NewEncodeConf()
+	e.IncludeHeader = false
+
+	originalVal := "benim adim insanlarin hizasina yazilmistir\n" +
+		"her gun yepyeni ruyalarla odenebilecek bir ceza bu\n"
+	val := originalVal
+	c, err := Marshal(e, val)
+	if err != nil || c == nil || len(c) != 96 || (c[0] != token_byte_long_string_ascii) && string(c[1:]) != val && c[len(c)-1] != byte_marker_end_of_string {
+		t.Fatal("encode long ascii string failed, err:", err, "content len:", len(c), "first byte:", c[0], "last byte:", c[len(c)-1])
+	}
+	val = originalVal + "œ"
+	c, err = Marshal(e, val)
+	if err != nil || c == nil || len(c) != 98 || (c[0] != token_misc_long_text_unicode) && string(c[1:]) != val && c[len(c)-1] != byte_marker_end_of_string {
+		t.Fatal("encode long unicode 2-byte string failed, err:", err, "content len:", len(c), "first byte:", c[0], "last byte:", c[len(c)-1])
+	}
+	val = originalVal + "≈"
+	c, err = Marshal(e, val)
+	if err != nil || c == nil || len(c) != 99 || (c[0] != token_misc_long_text_unicode) && string(c[1:]) != val && c[len(c)-1] != byte_marker_end_of_string {
+		t.Fatal("encode long unicode 3-byte string failed, err:", err, "content len:", len(c), "first byte:", c[0], "last byte:", c[len(c)-1])
 	}
 }
 

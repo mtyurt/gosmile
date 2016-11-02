@@ -177,6 +177,36 @@ func TestLongString(t *testing.T) {
 	}
 }
 
+func TestSimpleSlice(t *testing.T) {
+	e := NewEncodeConf()
+	e.IncludeHeader = false
+
+	val := []int{1, 2, 16}
+
+	c, err := Marshal(e, val)
+	if err != nil || len(c) != 6 || c[0] != token_literal_start_array || c[5] != token_literal_end_array {
+		t.Fatal("encode int slice failed, err:", err, "len(c):", len(c))
+	}
+
+	strSlice := []string{"strtest", "strtestœ"}
+	c, err = Marshal(e, strSlice)
+	if err != nil || len(c) != 20 || c[0] != token_literal_start_array || c[19] != token_literal_end_array {
+		t.Fatal("encode string slice failed, err:", err, "len(c):", len(c))
+	}
+}
+
+func TestSimpleArray(t *testing.T) {
+	e := NewEncodeConf()
+	e.IncludeHeader = false
+
+	val := [3]int{1, 2, 16}
+
+	c, err := Marshal(e, val)
+	if err != nil || len(c) != 6 || c[0] != token_literal_start_array || c[5] != token_literal_end_array {
+		t.Fatal("encode int array failed, err:", err, "len(c):", len(c))
+	}
+}
+
 func expect(expected interface{}, got interface{}, t *testing.T, test string) {
 	if got != expected {
 		var stack [4096]byte

@@ -3,6 +3,7 @@ package gosmile
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"reflect"
 )
 
@@ -24,7 +25,8 @@ func Marshal(e *EncodeConf, v interface{}) ([]byte, error) {
 	if e.IncludeHeader {
 		e.encodeHeader()
 	}
-	err := marshal(e, v)
+	rv := reflect.ValueOf(v)
+	err := marshal(e, rv)
 
 	if err != nil {
 		return nil, err
@@ -46,11 +48,10 @@ func (e *EncodeConf) init() {
 	e.Version = 0
 }
 
-func marshal(e *EncodeConf, v interface{}) error {
-	t := reflect.TypeOf(v)
-	rv := reflect.ValueOf(v)
+func marshal(e *EncodeConf, rv reflect.Value) error {
+	fmt.Println("encode value", rv.Kind())
 
-	switch t.Kind() {
+	switch rv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return encodeInt(e, rv)
 	case reflect.Float32:
@@ -61,6 +62,10 @@ func marshal(e *EncodeConf, v interface{}) error {
 		return encodeBool(e, rv)
 	case reflect.String:
 		return encodeString(e, rv)
+	case reflect.Slice:
+		return encodeSlice(e, rv)
+	case reflect.Array:
+		return encodeSlice(e, rv)
 	}
 
 	return nil
@@ -80,6 +85,22 @@ func (e *EncodeConf) encodeHeader() {
 		varByte = varByte | 0x01
 	}
 	e.content.WriteByte(byte(varByte))
+}
+
+func encodeSlice(e *EncodeConf, rv reflect.Value) error {
+	fmt.Println("encode array", rv.Kind())
+	e.content.WriteByte(token_literal_start_array)
+
+	for i := 0; i < rv.Len(); i++ {
+		iv := rv.Index(i)
+		if err := marshal(e, iv); err != nil {
+			return err
+		}
+
+	}
+
+	e.content.WriteByte(token_literal_end_array)
+	return nil
 }
 
 func encodeString(e *EncodeConf, rv reflect.Value) error {

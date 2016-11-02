@@ -26,6 +26,11 @@ const token_literal_null = 0x21
 const token_literal_false = 0x22
 const token_literal_true = 0x23
 
+const token_literal_start_array = 0xF8
+const token_literal_end_array = 0xF9
+const token_literal_start_object = 0XFA
+const token_literal_end_object = 0xFB
+
 const max_short_value_string_bytes = 64
 
 const int_marker_end_of_string = 0xFC

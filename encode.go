@@ -3,6 +3,7 @@ package gosmile
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"reflect"
 )
@@ -66,6 +67,8 @@ func marshal(e *EncodeConf, rv reflect.Value) error {
 		return encodeSlice(e, rv)
 	case reflect.Array:
 		return encodeSlice(e, rv)
+	case reflect.Map:
+		return encodeMap(e, rv)
 	}
 
 	return nil
@@ -87,8 +90,62 @@ func (e *EncodeConf) encodeHeader() {
 	e.content.WriteByte(byte(varByte))
 }
 
+func encodeMap(e *EncodeConf, rv reflect.Value) error {
+	e.content.WriteByte(token_literal_start_object)
+	keys := rv.MapKeys()
+	for _, key := range keys {
+		if key.Kind() != reflect.String {
+			return errors.New("Map keys have to be string!")
+		}
+		if err := writeFieldName(e, key.String()); err != nil {
+			return err
+		}
+
+		if err := marshal(e, rv.MapIndex(key)); err != nil {
+			return err
+		}
+
+	}
+	e.content.WriteByte(token_literal_end_object)
+	return nil
+}
+
+func writeFieldName(e *EncodeConf, field string) error {
+
+	flen := len(field)
+	if flen == 0 {
+		e.content.WriteByte(token_key_empty_string)
+		return nil
+	}
+	//TODO max shared name length
+	//TODO shared name
+
+	encoded := []byte(field)
+	byteLen := len(encoded)
+	if byteLen == flen {
+		if byteLen <= max_short_name_ascii_bytes {
+			e.content.WriteByte(byte(token_prefix_key_ascii - 1 + byteLen))
+			e.content.Write(encoded)
+		} else {
+			e.content.WriteByte(byte(token_key_long_string))
+			e.content.Write(encoded)
+			e.content.WriteByte(byte(byte_marker_end_of_string))
+		}
+	} else {
+		if byteLen <= max_short_name_unicode_bytes {
+			e.content.WriteByte(byte(token_prefix_key_unicode - 2 + byteLen))
+			e.content.Write(encoded)
+		} else {
+			e.content.WriteByte(byte(token_key_long_string))
+			e.content.Write(encoded)
+			e.content.WriteByte(byte(byte_marker_end_of_string))
+		}
+	}
+	//TODO add seen name
+	return nil
+}
+
 func encodeSlice(e *EncodeConf, rv reflect.Value) error {
-	fmt.Println("encode array", rv.Kind())
 	e.content.WriteByte(token_literal_start_array)
 
 	for i := 0; i < rv.Len(); i++ {

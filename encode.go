@@ -69,6 +69,8 @@ func marshal(e *EncodeConf, rv reflect.Value) error {
 		return encodeSlice(e, rv)
 	case reflect.Map:
 		return encodeMap(e, rv)
+	case reflect.Struct:
+		return encodeStruct(e, rv)
 	}
 
 	return nil
@@ -89,7 +91,22 @@ func (e *EncodeConf) encodeHeader() {
 	}
 	e.content.WriteByte(byte(varByte))
 }
+func encodeStruct(e *EncodeConf, rv reflect.Value) error {
+	e.content.WriteByte(token_literal_start_object)
+	for i := 0; i < rv.NumField(); i++ {
+		value := rv.Field(i)
+		name := rv.Type().Field(i).Name
+		if err := writeFieldName(e, name); err != nil {
+			return err
+		}
+		if err := marshal(e, value); err != nil {
+			return err
+		}
 
+	}
+	e.content.WriteByte(token_literal_end_object)
+	return nil
+}
 func encodeMap(e *EncodeConf, rv reflect.Value) error {
 	e.content.WriteByte(token_literal_start_object)
 	keys := rv.MapKeys()

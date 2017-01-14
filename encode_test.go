@@ -220,6 +220,20 @@ func TestSimpleMap(t *testing.T) {
 	}
 }
 
+func TestSimpleStruct(t *testing.T) {
+	v := struct {
+		key string
+	}{"value"}
+
+	e := NewEncodeConf()
+	e.IncludeHeader = false
+
+	c, err := Marshal(e, v)
+	if err != nil || len(c) != 12 || c[0] != token_literal_start_object || c[11] != token_literal_end_object {
+		t.Fatal("encode simple map failed, err:", err, "len(c):", len(c))
+	}
+}
+
 func expect(expected interface{}, got interface{}, t *testing.T, test string) {
 	if got != expected {
 		var stack [4096]byte

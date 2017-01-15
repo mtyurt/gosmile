@@ -220,15 +220,47 @@ func TestSimpleMap(t *testing.T) {
 	}
 }
 
+type simplestruct struct {
+	key string
+}
+type simpleinterface interface {
+	Foo() string
+}
+
+func (s *simplestruct) Foo() string {
+	return "foo"
+}
+
 func TestSimpleStruct(t *testing.T) {
-	v := struct {
-		key string
-	}{"value"}
+	v := simplestruct{"value"}
 
 	e := NewEncodeConf()
 	e.IncludeHeader = false
 
 	c, err := Marshal(e, v)
+	if err != nil || len(c) != 12 || c[0] != token_literal_start_object || c[11] != token_literal_end_object {
+		t.Fatal("encode simple map failed, err:", err, "len(c):", len(c))
+	}
+}
+func TestSimpleStructPointer(t *testing.T) {
+	v := simplestruct{"value"}
+
+	e := NewEncodeConf()
+	e.IncludeHeader = false
+
+	c, err := Marshal(e, &v)
+	if err != nil || len(c) != 12 || c[0] != token_literal_start_object || c[11] != token_literal_end_object {
+		t.Fatal("encode simple map failed, err:", err, "len(c):", len(c))
+	}
+}
+func TestSimpleInterface(t *testing.T) {
+	s := simplestruct{"value"}
+	var v simpleinterface
+	v = &s
+	e := NewEncodeConf()
+	e.IncludeHeader = false
+
+	c, err := Marshal(e, simpleinterface(v))
 	if err != nil || len(c) != 12 || c[0] != token_literal_start_object || c[11] != token_literal_end_object {
 		t.Fatal("encode simple map failed, err:", err, "len(c):", len(c))
 	}

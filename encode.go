@@ -63,14 +63,18 @@ func marshal(e *EncodeConf, rv reflect.Value) error {
 		return encodeBool(e, rv)
 	case reflect.String:
 		return encodeString(e, rv)
+	case reflect.Interface:
+		return nil //encodePtrOrInterface(e, rv)
+	case reflect.Struct:
+		return encodeStruct(e, rv)
+	case reflect.Map:
+		return encodeMap(e, rv)
 	case reflect.Slice:
 		return encodeSlice(e, rv)
 	case reflect.Array:
 		return encodeSlice(e, rv)
-	case reflect.Map:
-		return encodeMap(e, rv)
-	case reflect.Struct:
-		return encodeStruct(e, rv)
+	case reflect.Ptr:
+		return encodePtrOrInterface(e, rv)
 	}
 
 	return nil
@@ -90,6 +94,13 @@ func (e *EncodeConf) encodeHeader() {
 		varByte = varByte | 0x01
 	}
 	e.content.WriteByte(byte(varByte))
+}
+func encodePtrOrInterface(e *EncodeConf, rv reflect.Value) error {
+	if rv.IsNil() {
+		e.content.WriteByte(token_literal_null)
+		return nil
+	}
+	return marshal(e, rv.Elem())
 }
 func encodeStruct(e *EncodeConf, rv reflect.Value) error {
 	e.content.WriteByte(token_literal_start_object)

@@ -1,22 +1,32 @@
 package gosmile
 
-import "errors"
+import (
+	"errors"
+	"reflect"
+)
 
+type DecoderConf struct {
+	ContainsRawBinary         bool
+	SharedStringValueEnabled  bool
+	SharedPropertyNameEnabled bool
+	Version                   int
+	IncludeHeader             bool
+	RawBinary                 bool
+}
 type decoder struct {
-	version            int
-	sharedStringValue  bool
-	sharedPropertyName bool
-	rawBinary          bool
-	data               []byte
+	conf  *DecoderConf
+	data  []byte
+	index int
 }
 
-func Unmarshal(content []byte, v interface{}) error {
-	d := &decoder{data: content}
-	err := d.init()
-	if err != nil {
-		return err
-	}
-	return nil
+func NewDecoderConf() *DecoderConf {
+	c := &DecoderConf{}
+	c.ContainsRawBinary = false
+	c.SharedPropertyNameEnabled = true
+	c.SharedStringValueEnabled = false
+	c.IncludeHeader = true
+	c.Version = 0
+	return c
 }
 
 func (d *decoder) init() error {
@@ -27,12 +37,90 @@ func (d *decoder) init() error {
 	if d.data[0] != byte(':') || d.data[1] != byte(')') || d.data[2] != byte('\n') {
 		return errors.New("invalid header: " + string(d.data[0:3]))
 	}
+	conf := &DecoderConf{}
 	varByte := d.data[3]
-	d.version = int((varByte & 0xf0) >> 4)
-	d.rawBinary = (varByte & 0x04) == 0x04
-	d.sharedStringValue = (varByte & 0x02) == 0x02
-	d.sharedPropertyName = (varByte & 0x01) == 0x01
+	conf.Version = int((varByte & 0xf0) >> 4)
+	conf.RawBinary = (varByte & 0x04) == 0x04
+	conf.SharedStringValueEnabled = (varByte & 0x02) == 0x02
+	conf.SharedPropertyNameEnabled = (varByte & 0x01) == 0x01
+	conf.IncludeHeader = true
+	d.conf = conf
+	d.index = 4
 	return nil
+}
+
+func Unmarshal(content []byte, v interface{}) error {
+	conf := &DecoderConf{}
+	d := &decoder{data: content, conf: conf}
+	err := d.init()
+	if err != nil {
+		return err
+	}
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return errors.New("input value should be a pointer")
+	}
+	return nil
+}
+func Parse(contant []byte) (*interface{}, error) {
+	conf := &DecoderConf{}
+	d := &decoder{data: content, conf: conf}
+	err := d.init()
+	if err != nil {
+		return nil, err
+	}
+	return decode(d)
+}
+func decode(d *decoder) (*interface{}, error) {
+	token := d.data[d.index] & 0xff
+	d.index++
+	switch token >> 5 {
+	case 0: //shared string
+		break
+	case 1:
+		{
+			typeBits := ch & 0x1F
+			if typeBits < 4 {
+				switch typeBits {
+				case 0x00:
+					return decodeString(d, token)
+				case 0x01: //null value
+					return nil, nil
+				case 0x02:
+					return false, nil
+				case 0x03:
+					return true, nil
+				}
+			}
+			if typeBits == 4 {
+				return decodeInt(d)
+			}
+		}
+	}
+	return nil
+}
+func decodeString(d *decoder, token int) (string, error) {
+	tokentype := (token >> 5)
+	if tokentype == 2 || tokentype == 3 { // tiny & short ASCII
+		return decodeShortAsciiString(1 + (token & 0x3F)), nil
+	}
+	if tokentype == 4 || tokentype == 5 { // tiny & short Unicode
+		// short unicode; note, lengths 2 - 65 (off-by-one compared to ASCII)
+		return decodeShortUnicodeString(2 + (token & 0x3F)), nil
+	}
+}
+func decodeShortAsciiString(d *decoder, length int) string {
+	val := string(decoder.data[d.index : d.index+length])
+	d.index += length
+	return val
+}
+func decodeShortUnicodeString(d *decoder, length int) string {
+	return ""
+}
+
+type token struct {
+	tokentype int
+	value     interface{}
 }
 
 func zigzagDecodeInt(n int) int {

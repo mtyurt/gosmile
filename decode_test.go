@@ -33,7 +33,7 @@ func TestInitConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal("shouldn't trigger any error", err)
 	}
-	if d.version != 0xa || !d.sharedStringValue || !d.sharedPropertyName || !d.rawBinary {
+	if d.conf.Version != 0xa || !d.conf.SharedStringValueEnabled || !d.conf.SharedPropertyNameEnabled || !d.conf.RawBinary {
 		t.Fatal("wrong config:", d, "version should be 10, all flags should be true")
 	}
 }
